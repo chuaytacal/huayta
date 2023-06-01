@@ -1,0 +1,97 @@
+PROGRAM AuditorBanquero;
+CONST NCTAS = 100;
+var lineascont: integer;
+var lineasop: integer;
+
+VAR
+  Cuenta: array[1..NCTAS]of integer;
+  i: Integer;
+  turno: array[1..2] of Integer;
+  proceso: array[1..2] of Boolean;
+  imprimir: Integer;
+
+PROCESS contarcuentas;
+VAR
+  ci, Total, k: INTEGER;
+BEGIN
+  for k := 1 to 30 do
+  begin
+    turno[1] := 1;  
+    proceso[1] := True;  
+    while proceso[2] and (turno[2] = 1) do
+    begin
+      
+    end;
+
+    Total := 0;
+    FOR ci := 1 TO NCTAS do
+    begin
+      Total := Total + Cuenta[ci];
+    end;
+
+    
+    while imprimir <> 1 do
+    begin
+      
+    end;
+
+    Writeln('Total saldo de todas las cuentas: ', Total);
+
+    lineascont := lineascont + 1;
+    imprimir := 2;  
+
+    proceso[1] := False; 
+  end
+END;
+
+PROCESS operacion;
+VAR
+  c1, c2, cant, k: integer;
+BEGIN
+  for k := 1 to 30 do
+  begin
+    proceso[2] := True;  
+    turno[2] := 2;  
+    while proceso[1] and (turno[1] = 2) do
+    begin
+      
+    end;
+
+    c1 := RANDOM(NCTAS - 1) + 1;
+    c2 := RANDOM(NCTAS - 1) + 1;
+    cant := 0;
+    IF (Cuenta[c1] > 10) THEN CANT := RANDOM(10);
+    Cuenta[c1] := Cuenta[c1] - cant;
+    Cuenta[c2] := Cuenta[c2] + cant;
+
+    
+    while imprimir <> 2 do
+    begin
+      
+    end;
+
+    Writeln('Transaccion de ', cant, ' soles de la cuenta ', c1, ' a la cuenta ', c2);
+
+    lineasop := lineasop + 1;
+    imprimir := 1;  
+
+    proceso[2] := False;  
+  end
+END;
+
+BEGIN
+  lineascont := 0;
+  lineasop := 0;
+  proceso[1] := False;
+  proceso[2] := False;
+  imprimir := 1;  
+  for i := 1 to NCTAS do
+    cuenta[i] := 100;
+  COBEGIN
+    operacion;
+    contarcuentas;
+  COEND;
+  Writeln(' ');
+  Writeln('CANTIDAD DE VECES P1(contarcuenta) SE EJECUTÓ: ', lineascont);
+  Writeln('CANTIDAD DE VECES P2(operacion) SE EJECUTÓ: ', lineasop);
+END.
