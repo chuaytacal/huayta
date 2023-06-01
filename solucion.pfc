@@ -1,0 +1,88 @@
+program examen;
+
+var contc: integer;
+var conto: integer;
+CONST ncuentas = 100;
+
+VAR
+ cuenta: array[1..ncuentas]of integer;
+ flag1, flag2: boolean;
+ turno: integer;
+ i: integer;
+
+PROCESS contarcuentas;
+VAR
+  o, total: integer;
+BEGIN
+  repeat
+    flag1 := true;
+    while flag2 do
+    begin
+    	if turno = 2 THEN
+    	begin
+    		flag1 := false;
+    		while turno = 2 DO NULL;
+    		flag1 := true;
+    	end;
+    end;
+	turno := 2;
+	
+    total := 0;
+    for o := 1 to ncuentas do
+      total := total + cuenta[o];
+
+    Writeln('El saldo de todas las cuentas es: ', total);
+    contc := contc + 1;
+
+    flag1 := false; 
+  forever
+END;
+
+PROCESS operacion;
+VAR
+  num1, num2, soles: integer;
+BEGIN
+  repeat
+    flag2 := true;
+    while flag1 do
+    begin
+    	if turno = 1 THEN
+    	begin
+    		flag2 := false;
+    		while turno = 1 DO NULL;
+    		flag2 := true;
+    	end;
+    end;
+	turno := 1;
+	
+	soles := 0;
+    num1 := RANDOM(ncuentas - 1) + 1;
+    num2 := RANDOM(ncuentas - 1) + 1;
+    if (cuenta[num1] >= 10) THEN
+    	soles := RANDOM(10);
+    cuenta[num1] := cuenta[num1] - soles;
+    cuenta[num2] := cuenta[num2] + soles;
+
+    Writeln('Se transfirió ', soles, ' soles de la cuenta ', num1, ' a la cuenta ', num2);
+    conto := conto + 1;
+
+    flag2 := false;  
+  forever
+END;
+
+BEGIN
+  contc := 0;
+  conto := 0;
+  flag1 := false;
+  flag2 := false;
+  turno := 1;  
+  for i := 1 to ncuentas do
+    cuenta[i] := 100;
+  COBEGIN
+    operacion;
+    contarcuentas;
+  COEND;
+  Writeln(' ');
+  Writeln('CANTIDAD DE VECES P1(contarcuenta) SE EJECUTÓ: ', contc);
+  Writeln('CANTIDAD DE VECES P2(operacion) SE EJECUTÓ: ', conto);
+END.
