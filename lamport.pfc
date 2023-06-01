@@ -1,0 +1,75 @@
+program lamport;
+const n = 3;
+
+var
+	S : array[1..n] of boolean;
+	nt : array[1..n] of integer;
+	suma : integer;
+	
+process type Entrada(i : integer);
+var
+	aux : integer;
+	
+(* FUNCION NT MAX *)
+function ntmax : integer;
+var max, k : integer;
+begin
+	max := nt[1];
+	for k:= 2 to n do
+	begin
+		if nt[k] > max then
+			max := nt[k];
+	end;
+	ntmax := max;
+end;
+
+(* FUNCION NTMAYORQUE (i, j)*)
+function ntmayorque(i,j : integer) : boolean;
+begin
+	if nt[i] > nt[j] then
+		ntmayorque := true
+	else
+		if nt[i] < nt[j] then
+			ntmayorque := false
+		else
+			ntmayorque := (i > j);
+end;
+
+(* PROCESO Pi : P[1..n] *)
+begin
+	repeat
+		S[i] := true;
+		nt[i] := 1 + ntmax;
+		S[i] := false;
+		for aux:=1 to n do
+		begin
+			while (S[aux] = true) do null;
+			while ( (nt[aux] <> 0) and (ntmayorque(i,aux)) ) do 
+			null;
+		end; 
+		(* SECCION CRITICA *)
+		suma := suma + 1;
+		writeln('Seccion critica (', i, ') -> ', suma);
+		nt[i] := 0;
+	forever
+end;
+
+var
+	turnos: array[1..n] of Entrada;
+	aux : integer;
+	
+(* PROGRAMA PRINCIPAL *)	
+begin
+	suma := 0;
+	for aux:=1 to n do
+	begin
+		S[aux] := false;
+		nt[aux] := 0;
+	end;
+	
+	cobegin
+		for aux:=1 to n do
+			turnos[aux](aux);
+	coend;
+ 
+end.

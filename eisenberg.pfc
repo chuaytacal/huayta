@@ -1,0 +1,58 @@
+program eisenberg;
+const n = 3;
+
+var
+	s : array[0..n] of integer;
+	suma, turno : integer;
+	
+(* 1 = qe   2 = sc   3 = rp *)	
+
+process type Proceso(i : integer );
+var j : integer;
+begin
+	repeat
+		repeat
+		
+			s[i] := 1;
+			j := turno;
+			while j <> i do
+			begin
+				if s[j] <> 3 then 
+					j := turno
+				else 
+					j := (j+1) mod n;
+			end;
+			s[i] := 2;
+			j := 0;
+			while ( (j < n) and ( (j = i) or (s[j] <> 2) ) ) do
+				j := j + 1;
+		
+		until ((j >= n) and ((turno = i) or (s[turno] = 3)));
+		turno := i;
+		(* seccion critica *)
+		suma := suma + 1;
+		writeln('SECCION CRITICA (' , i, ') -> ', suma);
+		j := (turno + 1) mod n;
+		while s[j] = 3 do
+			j := (j + 1) mod n;
+		turno := j;
+		s[i] := 3;
+	forever
+end;
+
+var aux: integer;
+	proc : array[0..n] of Proceso;
+
+begin
+
+	for aux := 0 to n do
+		s[aux] := 3;
+	turno := random(n);
+	suma := 0;
+	writeln('TURNO INICIAL = ',turno);
+	cobegin
+		for aux := 0 to n do
+			proc[aux](aux);
+	coend;
+
+end.

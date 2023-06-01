@@ -1,0 +1,49 @@
+program Hyman;
+
+var
+	s1, s2 : boolean;
+	turno, suma : integer; 
+
+
+process p1;
+begin
+	repeat
+		s1 := true;
+		while turno <> 1 do
+		begin
+			if s2 = true then null;
+			turno := 1;
+		end;
+		(* seccion critica *)
+		suma := suma + 1;
+		writeln('P1 -> ', suma);
+		s1 := false;
+	forever
+end;
+
+process p2;
+begin
+	repeat
+		s2 := true;
+		while turno <> 2 do
+		begin
+			if s1 = true then null;
+			turno := 2;
+		end;
+		(* seccion critica *)
+		suma := suma + 1;
+		writeln('P2 -> ', suma);
+		s2 := false;
+	forever
+end;
+
+begin
+	s1 := false;
+	s2 := false;
+	turno := 1;
+	suma := 0;
+	
+	cobegin
+		p1; p2;
+	coend
+end.
