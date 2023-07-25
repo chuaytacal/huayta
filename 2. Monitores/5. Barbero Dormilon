@@ -1,0 +1,64 @@
+program barberoDormilon;
+
+monitor barberia;
+export barbero, cliente;
+
+var
+enEspera, n: integer;
+condicion, clientes: condition;
+
+procedure barbero;
+begin 
+	repeat
+		if(enEspera = 0) then
+			delay(clientes);
+		enEspera := enEspera - 1;
+		resume(condicion);
+		writeln(enEspera, ' El barbero está cortando el cabello');
+	until(enEspera <> 0);
+end;
+
+procedure cliente(i: integer);
+begin
+	
+	if(enEspera < n) then
+	begin
+		enEspera := enEspera + 1;
+		writeln('El cliente ', i, ' se ha sentado a esperar');
+		resume(clientes);
+		delay(condicion);
+	end
+	else
+		writeln('El cliente ', i, ' se ha ido');
+end;
+
+begin
+	enEspera := 0;
+	n := 3;
+end;
+
+process type Barber;
+begin 
+	repeat
+		barberia.barbero;
+	forever
+end;
+
+process type clientela(i:integer);
+begin 
+	repeat
+		barberia.cliente(i);
+	forever
+end;
+
+var 
+	clientes: array[0..4] of clientela;
+	barbero: Barber;
+i: integer;
+begin
+	cobegin
+		for i:= 0 to 4 do
+			clientes[i](i+1);
+		barbero;
+	coend
+end.
