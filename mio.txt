@@ -1,0 +1,59 @@
+program mio;
+
+var mutex , uso: semaphore;
+var nCA, nCO : integer;
+
+process type chicas;
+begin
+
+		(*protocolo de entrada;*)
+		wait(mutex);
+		if (nCA < 2) then
+		begin
+			nCA := nCA + 1;
+			if(nCA = 1) then
+			begin
+				wait(uso);
+			end;
+			writeln('Una chica esta entrando al servicio, Numero de chicas totales: ', nCA);
+		end;
+		writeln('Una chica esta usando el servicio');
+		signal(mutex);
+		wait(mutex);
+		nCA := nCA - 1;
+		(*protocolo de salida;*)
+		if (nCA = 0) then
+			signal(uso);
+		signal(mutex);
+	
+end;
+
+process type chicos;
+begin
+		
+	
+		(*protocolo de entrada;*)
+		wait(uso);
+		if (nCO < 5) then
+		begin
+		 	nCO := nCO + 1;
+			writeln('Un chico esta entrando al servicio de chicos, Numero de chicos totales: ', nCO);
+			(*protocolo de salida;*)
+		end;
+		signal(uso);
+end;
+
+var i : integer;
+	CA: array[0..5] of chicas;
+	CO: array[0..5] of chicos;
+begin
+	initial(uso, 1);
+	initial(mutex, 1);
+	nCA := 0;
+	nCO := 0;
+	cobegin
+		for i := 0 to 5 do
+			CA[i]; 
+			CO[i];
+	coend
+end.
