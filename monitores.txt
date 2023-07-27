@@ -1,0 +1,327 @@
+program ProductorConsumidor;
+monitor buffer;
+export insertar,sacar;
+const 
+		tb=5;
+		mb=4;
+	var
+		recurso:array[0..mb] of integer;
+		tam,frente,cola: integer;
+		nolleno,novacio:condition;
+procedure insertar(i:integer);
+	begin
+		if(tam>=tb) then delay(nolleno);
+		recurso[cola]:=i;
+		tam:=tam+1;
+		cola:=(cola+1) mod tb;
+		resume(novacio);
+	end;
+procedure sacar(var i:integer);
+	begin
+		if(tam= 0) then delay(novacio);
+		i:=recurso[frente];
+		tam:=tam-1;
+		frente:=(frente+1)mod tb;
+		resume(nolleno);
+	end;
+begin
+	tam:=0;
+	frente:=0;
+	cola:=0;
+end;
+
+process productor ; 		
+var local:integer;			
+begin 
+	repeat
+		local:=local+1;
+		
+		buffer.insertar(local);
+		writeln('Se produce el elemento ',local);
+	forever
+end ; 
+
+process consumidor;
+var i:integer;
+begin
+	repeat
+		buffer.sacar(i);
+		writeln('Se consume el elemento ',i);
+		
+	forever
+end;
+
+begin
+	cobegin 
+		productor; 
+		consumidor; 
+	coend ;
+end.
+------------------------------- LELECTURA ------------------------------- 
+program LELectura;
+
+monitor PrioLec;
+export alectura, clectura, aescritura, cescritura;
+
+var
+  	n1: integer;
+  	escribiendo: boolean;
+  	lector, escritor: condition;
+
+  	procedure alectura;
+  	begin
+    	if escribiendo then delay(lector);
+    	n1 := n1 + 1;
+    	resume(lector);
+  	end;
+
+  	procedure clectura;
+  	begin
+    	n1 := n1 - 1;
+    	if n1 = 0 then resume(escritor);
+  	end;
+
+  	procedure aescritura;
+  	begin
+    	if (n1 <> 0) or escribiendo then delay(escritor);
+    	escribiendo := true;
+  	end;
+
+  	procedure cescritura;
+  	begin
+    	escribiendo := false;
+    	if empty(lector) then resume(escritor)
+    	else resume(lector);
+  	end;
+
+begin
+  	n1 := 0;
+  	escribiendo := false;
+end;
+
+process type lector;
+var
+  	lec: integer;
+begin
+  	repeat
+    	PrioLec.alectura;
+    	writeln('Leer el recurso');
+    	PrioLec.clectura;
+  	forever
+end;
+
+process type escritor;
+begin
+  	repeat
+    	PrioLec.aescritura;
+    	writeln('Escribir en el recurso');
+   	 	PrioLec.cescritura;
+  	forever
+end;
+
+	var i : integer;
+	LE: array[0..3] of lector;
+	ES: array[0..3] of escritor;
+
+begin
+  	cobegin
+		for i:=0 to 3 do
+		LE[i]; ES[i];
+	coend
+end.
+------------------------------- LEESCRITURA ------------------------------- 
+program LEEscritura;
+monitor le;
+export abrirLectura, cerrarLectura, abrirEscritura, cerrarEscritura;
+var
+  nl: integer;
+  escribiendo: boolean;
+  lector, escritor: condition;
+
+  procedure abrirLectura;
+  begin
+    if (escribiendo) or not empty(escritor) then delay(lector);
+    nl := nl + 1;
+    resume(lector);
+  end;
+
+  procedure cerrarLectura;
+  begin
+    nl := nl - 1;
+    if (nl = 0) then resume(escritor);
+  end;
+
+  procedure abrirEscritura;
+  begin
+    if (nl <> 0) or escribiendo then delay(escritor);
+    escribiendo := true;
+  end;
+
+  procedure cerrarEscritura;
+  begin
+    escribiendo := false;
+    if not empty(lector) then resume(lector)
+    else resume(escritor);
+  end;
+
+begin
+  nl := 0;
+  escribiendo := false;
+end;
+
+process type lector;
+begin
+	repeat
+	  le.abrirLectura;
+	  writeln('Leer');
+	  le.cerrarLectura;
+  	forever
+end;
+
+process type escritor;
+begin
+	repeat
+	  le.abrirEscritura;
+	  writeln('Escribir');
+	  le.cerrarEscritura;
+  	forever
+end;
+
+var i: integer;
+	l: array[0..2] of lector;
+	e: array[0..2] of escritor;
+begin
+	cobegin
+    	for i := 0 to 2 do
+		begin
+			l[i];
+			e[i];
+		end;
+	coend;
+end.
+------------------------------- FILOSOFOS ------------------------------- 
+program FilosofosComensales;
+
+monitor comidaFilosofos;
+	export cogerPalillos, soltarPalillos;
+	const N = 5;
+	var estado: array[0..4] of (pensando, comiendo, hambriento);
+		dormir: array[0..4] of condition;
+		i: integer;
+	
+	procedure test(k: integer);
+	begin
+		(*Para poder comer, ninguno de los filosofos de los lados*)
+		(*puede estar comiendo                                   *)
+		if (estado[(k+N-1) mod N] <> comiendo) and
+		   (estado[(k+1) mod N] <> comiendo) then
+		begin (*Si puede comer desbloquea al correspondiente filósofo*)
+			estado[k] := comiendo;
+			resume(dormir[k]);
+		end; 
+	end;
+	
+	procedure cogerPalillos(i: integer);
+	begin
+		estado[i] := hambriento; (*Avisa de que quiere comer	*)
+		test(i);				 (*Comprueba si puede comer		*)
+								 (*Si no puede comer se bloquea.*)
+		if estado[i] <> comiendo then delay(dormir[i])
+	end;
+	
+	procedure soltarPalillos(i: integer);
+	begin
+		estado[i] := pensando; (*Deja de comer e intenta bloquear 	   *)
+							   (*a los filósofos que tiene a ambos lados.*)
+		test((i+4) mod N);
+		test((i+1) mod N)
+	end;
+	
+begin
+	for i := 0 to N-1 do
+		estado[i] := pensando;
+end;
+
+process type filosofo(i: integer);
+begin
+	repeat
+		writeln('El filosofo ', i, ' esta pensando');
+		comidaFilosofos.cogerPalillos(i);
+		writeln('El filosofo ', i, ' esta comiendo');
+		comidaFilosofos.soltarPalillos(i);
+	forever
+end;
+
+var i: integer;
+	F: array[0..4] of filosofo;
+begin
+	cobegin
+		for i := 0 to 4 do
+			F[i](i);
+	coend;
+end.
+------------------------------- BARBERO ------------------------------- 
+program barberoDormilon;
+
+monitor barberia;
+export barbero, cliente;
+
+var
+enEspera, n: integer;
+condicion, clientes: condition;
+
+procedure barbero;
+begin 
+	repeat
+		if(enEspera = 0) then
+			delay(clientes);
+		enEspera := enEspera - 1;
+		resume(condicion);
+		writeln(enEspera, ' El barbero está cortando el cabello');
+	until(enEspera <> 0);
+end;
+
+procedure cliente(i: integer);
+begin
+	
+	if(enEspera < n) then
+	begin
+		enEspera := enEspera + 1;
+		writeln('El cliente ', i, ' se ha sentado a esperar');
+		resume(clientes);
+		delay(condicion);
+	end
+	else
+		writeln('El cliente ', i, ' se ha ido');
+end;
+
+begin
+	enEspera := 0;
+	n := 3;
+end;
+
+process type Barber;
+begin 
+	repeat
+		barberia.barbero;
+	forever
+end;
+
+process type clientela(i:integer);
+begin 
+	repeat
+		barberia.cliente(i);
+	forever
+end;
+
+var 
+	clientes: array[0..4] of clientela;
+	barbero: Barber;
+i: integer;
+begin
+	cobegin
+		for i:= 0 to 4 do
+			clientes[i](i+1);
+		barbero;
+	coend
+end.

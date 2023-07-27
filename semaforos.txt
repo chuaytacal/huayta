@@ -1,0 +1,282 @@
+program ProductorConsumidor;
+
+	var n: integer;
+	sdatos, sleido : semaphore;
+
+process productor;
+begin
+	repeat
+		wait(sleido);
+		n := random(20);
+		writeln('Productor consume el siguiente dato: ', n);
+		signal(sdatos);
+	forever
+end;
+
+process consumidor;
+begin
+	repeat
+		wait(sdatos);
+		writeln('Consumidor, consume/utiliza el dato: ', n);
+		signal(sleido);
+	forever
+end;
+
+begin
+	writeln('Enviando 20 valores aleatorios');
+	initial(sleido, 1);
+	initial(sdatos, 0);
+	cobegin
+		productor;
+		consumidor;
+	coend;
+end.
+------------------------------- LELECTURA ------------------------------- 
+program LELectura;
+var mutex , wrt : semaphore;
+var lec : integer;
+
+process type lector;
+begin
+	repeat
+		(*protocolo de entrada;*)
+		wait(mutex);
+		lec:=lec+1;
+		if(lec=1) then
+			wait(wrt);
+		signal(mutex);
+		writeln('leer del recurso');
+		wait(mutex);
+		lec:=lec-1;
+		(*protocolo de salida;*)
+		if (lec=0) then
+			signal(wrt);
+		signal(mutex);
+	forever
+end;
+
+process type escritor;
+begin
+	repeat
+	(*protocolo de entrada;*)
+	wait(wrt);
+	writeln('Escribir recurso');
+	(*protocolo de salida;*)
+	signal(wrt);
+	forever
+end;
+
+var i : integer;
+	LE: array[0..3] of lector;
+	ES: array[0..3] of escritor;
+begin
+	initial(wrt,1);
+	initial(mutex,1);
+	lec:=0;
+	cobegin
+		for i:=0 to 3 do
+			LE[i]; ES[i];
+	coend
+end.
+------------------------------- LEESCRITURA------------------------------- 
+program LEEscritura;
+
+var mutex,writer,reader: semaphore;
+var lec,nle,nee : integer;
+var writing : boolean;
+
+process type lector;
+begin
+	repeat
+		wait(mutex);
+		(*mientras existen escritores en espera o algún escritor*)
+		(*este escribiendo esperar*)
+		if (writing = true or (nee > 0)) then
+			begin
+				nle:=nle+1;
+				signal(mutex);
+				wait(reader);
+				nle:=nle-1;
+			end;
+		lec:=lec+1;
+		if (nle>0) then
+			begin
+				signal(reader);
+			end
+		else
+			begin
+				signal(mutex);
+			end;
+		writeln('leer del recurso');
+		(*protocolo de salida;*)
+		wait(mutex);
+		lec:=lec-1;
+		if((lec=0) and (nee>0))then
+			begin
+				signal(writer);
+			end
+		else
+			begin
+				signal(mutex);
+			end;
+	forever
+end;
+
+process type escritor;
+begin
+	repeat
+		wait(mutex);
+		(*Si se está escribiendo o existen lectores*)
+		(* el escritor debe ser bloqueado*)
+		if (writing=true or (lec>0))then
+			begin
+				nee:=nee+1;
+				signal(mutex);
+				wait(writer);
+				nee:=nee-1;
+			end;
+		writing:=true;
+		signal(mutex);
+		writeln('Escribir recurso');
+		wait(mutex);
+		(*nee:=nee-1;*)
+		writing:=false;
+		(*desbloquear un escritor que esté en espera*)
+		(* sino desbloquear a un lector en espera*)
+		if(nee>0)then
+			begin
+				signal(writer)
+			end
+		else
+			begin
+				if(nle>0) then
+					begin
+						signal(reader);
+					end
+				else
+					begin
+						signal(mutex);
+					end;
+			end;
+	forever
+end;
+
+var i : integer;
+	LE: array[0..2] of lector;
+	ES: array[0..2] of escritor;
+begin
+	initial(mutex,1);
+	initial(writer,0);
+	initial(reader,0);
+	writing:=false;
+	lec:=0;
+	nle:=0;
+	nee:=0;
+	cobegin
+		for i:=0 to 1 do
+			LE[i]; ES[i];
+	coend
+end.
+------------------------------- FILOSOFOS ------------------------------- 
+program FilosofosComensales;
+
+var palillo: array[0..4] of semaphore;
+
+process type filosofopar(i: integer);
+begin
+	repeat
+		writeln(i,' : Piensa');
+		wait(palillo[(i+1)mod 5]);
+		wait(palillo[i]);
+		writeln(i,' : Come');
+		signal(palillo[i]);
+		signal(palillo[(i+1)mod 5]);
+	forever
+end;
+
+process type filosofoimpar(i: integer);
+begin
+	repeat
+		writeln(i,' : Piensa');
+		wait(palillo[i]);
+		wait(palillo[(i+1)mod 5]);
+		writeln(i,' : Come');
+		signal(palillo[i]);
+		signal(palillo[(i+1)mod 5]);
+	forever
+end;
+
+var k,i : integer;
+	FP: array[0..4] of filosofopar;
+	FI: array[0..4] of filosofoimpar;
+begin
+	for k:=0 to 4 do
+		initial(palillo[k],1);
+	cobegin
+		for k:=0 to 4 do
+		begin
+			if ((k = 0) or (k = 1))then
+				FP [k](k)
+			else
+				FI [k](k)
+		end
+	coend
+end.
+
+------------------------------- BARBERO ------------------------------- 
+program BarberoDormilon;
+
+var mutex,clientes,barber: semaphore;
+var n,enespera : integer;
+
+process type barbero;
+begin
+	repeat
+		while enespera <> 0 do
+		begin
+			wait(clientes);
+			wait(mutex);
+			enespera:=enespera-1;
+			signal(barber);
+			signal(mutex);
+			writeln(' Barbero cortando el cabello ');
+		end
+	forever
+end;
+
+process type clientela;
+begin
+	repeat
+		wait(mutex);
+		if (enespera < n) then
+		begin
+			enespera:=enespera+1;
+			write('Esperando');
+			signal(clientes);
+			signal(mutex);
+			wait(barber);
+		end
+		else
+		begin
+			signal(mutex);
+		end;
+	forever
+end;
+
+VAR BR: array[0..1] OF barbero;
+var C: array[0..4] of clientela;
+begin
+	initial(mutex,1);
+	initial(clientes,0);
+	initial(barber,0);
+	enespera:=0;
+	n:=5;
+	cobegin
+		C[0];
+		C[1];
+		C[2];
+		C[3];
+		C[4];
+		BR[1];
+	coend
+end.
